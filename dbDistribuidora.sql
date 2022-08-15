@@ -1,4 +1,3 @@
--- set sql_set_updates = 0; -- Para poder excluir sem Where. 
 drop database dbDistribuidora;
 create database dbDistribuidora;
 use dbDistribuidora;
@@ -82,6 +81,7 @@ CREATE TABLE tbEndereco(
     IdBairro INT NOT NULL,
     IdCidade INT NOT NULL,
     IdUF INT NOT NULL
+    
 );
 
 CREATE TABLE tbBairro(
@@ -116,9 +116,9 @@ alter table tbPedido add foreign key (IdFornecedor) references tbFornecedor(IdFo
 alter table tbPedidoProduto add foreign key (NotaFiscalPedido) references tbPedido(NotaFiscalPedido);
 alter table tbPedidoProduto add foreign key (CodigoBarras) references tbProduto(CodigoBarras);
 
-alter table tbEndereco add foreign key (IdBairro) references tbBairro(IdBairro);
-alter table tbEndereco add foreign key (IdCidade) references tbCidade(IdCidade);
-alter table tbEndereco add foreign key (IdUF) references tbUF(IdUF);
+ALTER TABLE tbEndereco ADD FOREIGN KEY (IdBairro) REFERENCES tbBairro(IdBairro);
+ALTER TABLE tbEndereco ADD FOREIGN KEY (IdCidade) REFERENCES tbCidade(IdCidade);
+ALTER TABLE tbEndereco ADD FOREIGN KEY (IdUF) REFERENCES tbUF(IdUF);
 
  -- drop procedure spInsertCidade; -- Salvação
 
@@ -168,19 +168,22 @@ describe tbEndereco;
 delimiter $$
 CREATE PROCEDURE spInsertEndereco(vCep DECIMAL(8,0),vLogradouro VARCHAR(200),vBairro VARCHAR(200), vCidade VARCHAR(200), vEstado VARCHAR(200))
 BEGIN
-
 	DECLARE dBairro INT;
 	DECLARE dCidade INT;
 	DECLARE dEstado INT;
+    DECLARE dLogradouro INT;
     
+    if (not (select cep from tbendereco where cep = vCep)) then
+		
     -- BAIRRO
     IF NOT EXISTS (SELECT idBairro FROM tbBairro WHERE bairro = vBairro) THEN 
 		INSERT INTO tbBairro(bairro)
         VALUES(vBairro);
     END IF;
     
-    SET dBairro := (SELECT idBairro FROM tbBairro WHERE bairro = vBairro);
     
+    SET dBairro := (SELECT idBairro FROM tbBairro WHERE bairro = vBairro);
+        
     -- CIDADE
     IF NOT EXISTS (SELECT idCidade FROM tbCidade WHERE cidade = vCidade) THEN 
 		INSERT INTO tbCidade(cidade)
@@ -199,6 +202,8 @@ BEGIN
     
     insert into tbEndereco
     values(vCep, vLogradouro, dBairro, dCidade, dEstado);
+    end if;
+	
     
 END
 $$
@@ -265,33 +270,144 @@ call spInsertEndereco(12345056, "Rua chocolate", "Aclimação", "Barra Mansa", "
 call spInsertEndereco(12345057, "Rua Pão na Chapa", "Barra Funda", "Ponta Grossa", "RS");
 call spInsertEndereco(12345050, "Rua da Federal", "Lapa", "São Paulo", "SP");
 
-drop procedure spInsertEndereco;
+-- ========================================================
+
+
+USE dbDistribuidora;
+
+DROP PROCEDURE sp_insertClientPF;
+SELECT * FROM tbCliente;
+SELECT * FROM tbclientepf;
+select * from tbendereco;
+
+TRUNCATE tbcliente;
+TRUNCATE tbclientepf;
+Truncate tbendereco;
+
+call sp_insertClientPF ("Pimpão", 325, Null, 12345051, 12345678911, 12345678, 0, 20001012, "Av Brasil", "Lapa", "Campinas", "SP");
+
+DELIMITER $$
+CREATE PROCEDURE sp_insertClientPF (vnome_cli VARCHAR(200), vnum_end NUMERIC(6), vcomp_end VARCHAR(50), vcep_cli NUMERIC(8),
+									vCPF NUMERIC(14), vRG NUMERIC(9), vRG_Dig char(1), vNasc DATE, vLogradouro varchar(200),
+                                    vBairro varchar(200), vCidade varchar(200), vUF varchar(200))
+BEGIN
+	DECLARE vId_cli INT;
+    
+    call spInsertEndereco(vcep_cli, vLogradouro, vBairro, vCidade, vUF);
+    
+	INSERT INTO tbCliente
+    VALUES(Default, vnome_cli, vnum_end, vcomp_end, vcep_cli);
+    
+    SET vId_cli := (SELECT idcli FROM tbcliente ORDER BY idcli DESC LIMIT 1);
+    
+    INSERT INTO tbclientePF
+    VALUES( vCPF, vRG, vRg_Dig, vNasc, vId_cli);
+END
+$$
+
+
+
+-- ======================================================
+
+use dbdistribuidora;
+drop procedure spInsertCliente;
+delimiter $$
+create procedure spInsertCliente (vNome varchar(50), vNumEnd decimal(6,0), vCompEnd varchar(50), vCEP decimal(8,0), vCPF decimal(11,0), vRG decimal(8,0), vRgDig char(1), vNasc date,
+vLogradouro varchar(200), vBairro varchar(200), vCidade varchar(200), vUF char(2))
+begin
+    if not exists (select CEP from tbEndereco where CEP = vCEP) then
+		if not exists (select IdBairro from tbBairro where Bairro = vBairro) then
+			insert into tbBairro(Bairro) values (vBairro);
+		end if;
+
+		if not exists (select IdUf from tbUF where UF = vUF) then
+			insert into tbUF(UF) values (vUF);
+		end if;
+
+		if not exists (select IdCidade from tbCidade where Cidade = vCidade) then
+			insert into tbCidade(Cidade) values (vCidade);
+		end if;
+		
+        
+		set @IdBairro = (select IdBairro from tbBairro where Bairro = vBairro);
+		set @IdUf = (select IdUF from tbUF where UF = vUf);
+		set @IdCidade = (select IdCidade from tbCidade where Cidade = vCidade);
+
+		insert into tbEndereco(CEP, Logradouro, IdBairro, IdCidade, IdUF) values
+		(vCEP, vLogradouro, @IdBairro, @IdCidade, @IdUF); 
+	end if;
+    
+   	if not exists (select CPF from tbClientePF where CPF = vCPF) then
+		insert into tbCliente(Nomecli, Cepcli, NumEnd, CompEnd) values (vNome, vCEP, vNumEnd, vCompEnd);
+        set @IdCli = (SELECT idcli FROM tbcliente ORDER BY idcli DESC LIMIT 1);
+		insert into tbClientePF(IdCli, CPF, RG, Rg_Dig, Nasc) values (@idCli, vCPF, vRG, vRgDig, vNasc);
+	end if;
+end $$
+
+call spInsertCliente('Pimpão', 325, null, 12345051, 12345678911, 12345678, 0, '2000-12-10', 'Av. Brasil', 'Lapa', 'Campinas', 'SP');
+call spInsertCliente('Disney Chaplin', 89, 'Ap. 12', 12345053, 12345678912, 12345679, 0, '2001-11-21', 'Av. Paulista', 'Penha', 'Rio de Janeiro', 'RJ');
+call spInsertCliente('Marciano', 744, null, 12345054, 12345678913, 12345680, 0, '2001-06-01', 'Rua Ximbú', 'Penha', 'Rio de Janeiro', 'RJ');
+call spInsertCliente('Lança Perfume', 128, null, 12345059, 12345678914, 12345681, 'X', '2004-04-05', 'Rua Veia', 'Jardim Santa Isabel', 'Cuiabá', 'MT');
+call spInsertCliente('Remédio Amargo', 2485, null, 12345058, 12345678915, 12345682, 0, '2002-07-15', 'Av. Nova', 'Jardim Santa Isabel', 'Cuiabá', 'MT');
+
+drop procedure spInsertClientePJ;
+delimiter $$
+create procedure spInsertClientePJ (vNome varchar(50), vCNPJ numeric(14), vIE numeric(11), vCEP decimal(8,0), vLogradouro varchar(200),
+				vNumEnd decimal(6,0), vCompEnd varchar(50),
+				vBairro varchar(200), vCidade varchar(200), vUF char(2))
+begin
+    if not exists (select CEP from tbEndereco where CEP = vCEP) then
+		if not exists (select IdBairro from tbBairro where Bairro = vBairro) then
+			insert into tbBairro(Bairro) values (vBairro);
+		end if;
+
+		if not exists (select IdUf from tbUF where UF = vUF) then
+			insert into tbUF(UF) values (vUF);
+		end if;
+
+		if not exists (select IdCidade from tbCidade where Cidade = vCidade) then
+			insert into tbCidade(Cidade) values (vCidade);
+		end if;
+		
+        
+		set @IdBairro = (select IdBairro from tbBairro where Bairro = vBairro);
+		set @IdUf = (select IdUF from tbUF where UF = vUf);
+		set @IdCidade = (select IdCidade from tbCidade where Cidade = vCidade);
+
+		insert into tbEndereco(CEP, Logradouro, IdBairro, IdCidade, IdUF) values
+		(vCEP, vLogradouro, @IdBairro, @IdCidade, @IdUF); 
+	end if;
+    
+   	if not exists (select CNPJ from tbClientePJ where CNPJ = vCNPJ) then
+		insert into tbCliente(Nomecli, Cepcli, NumEnd, CompEnd) values (vNome, vCEP, vNumEnd, vCompEnd);
+        set @IdCli = (SELECT idcli FROM tbcliente ORDER BY idcli DESC LIMIT 1);
+		insert into tbClientePJ(IdCli, CNPJ, IE) values (@idCli, vCNPJ, vIE);
+	end if;
+end $$
+
+call spInsertClientePJ('Paganada', 12345678912345, 98765432198, 12345051, 'Av. Brasil', 159, null, 'Lapa', 'Campinas', 'SP');
+call spInsertClientePJ('Caloteando', 12345678912346, 98765432199, 12345053, 'Av. Paulista', 69, null, 'Penha', 'Rio de Janeiro', 'RJ');
+call spInsertClientePJ('Semgrana', 12345678912347, 98765432100, 12345060, 'Rua dos Amores', 189, null, 'Sei Lá', 'Recife', 'PE');
+call spInsertClientePJ('Cemreais', 12345678912348, 98765432101, 12345060, 'Rua dos Amores', 5024, 'Sala 23', 'Sei Lá', 'Recife', 'PE');
+call spInsertClientePJ('Durango', 12345678912349, 98765432102, 12345060, 'Rua dos Amores', 1254, null, 'Sei Lá', 'Recife', 'PE');
 
 SELECT * FROM tbEndereco;
 SELECT * FROM tbCidade;
 SELECT * FROM tbUF;
 SELECT * FROM tbBairro;
+SELECT * FROM tbclientepj;
+SELECT * FROM tbcliente;
 
-call sp_insertClientPF ("Paganada", 139, NULL, 12345051, 12345678912345, 12345678901);
-drop procedure sp_insertClientPF;
-select * from tbCliente;
-select * from tbclientepj;
+create procedure spInsertCompra (vNotaFiscal INT, vFornecedor varchar(100), vDataCompra Date,
+								 vCodigoBarras numeric(14), vValorItem decimal(5,2),
+								 vQtd int, vQtdTotal int, vValorTotal decimal (6,2))
+begin 
+	if not exists (select NotaFiscal from tbNotaFiscal where NotaFiscal = vNotaFiscal) then
+    insert into tb
+    end if;
 
-truncate tbcliente;
-truncate tbclientepj;
+end
 
-DELIMITER $$
-CREATE PROCEDURE sp_insertClientPF (vnome_cli VARCHAR(200), vnum_end NUMERIC(6), vcomp_end VARCHAR(50), vcep_cli NUMERIC(8),
-									vCNPJ NUMERIC(14), vIE NUMERIC(11))
-BEGIN
-	DECLARE vId_cli INT;
-    
-	INSERT INTO tbCliente(NomeCli, NumEnd, CompEnd, CepCli)
-    VALUES(vnome_cli, vnum_end, vcomp_end, vcep_cli);
-    
-    set vId_cli := (select idcli from tbcliente order by idcli DESC LIMIT 1);
-    
-    INSERT INTO tbclientePJ(CNPJ, IE, idCli)
-    VALUES(vCNPJ, vIE, vId_cli);
-END
-$$
+
+
+
