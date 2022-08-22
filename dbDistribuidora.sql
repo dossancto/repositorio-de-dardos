@@ -1,4 +1,4 @@
-drop database dbDistribuidora;
+ drop database dbDistribuidora;
 create database dbDistribuidora;
 use dbDistribuidora;
 
@@ -34,10 +34,11 @@ create table tbProduto(
 create table tbCompra(
 	CodigoCompra numeric(10) primary key,
     DataCompra date default(current_timestamp()),
-    ValorTotal decimal(6,2) not null,
+    ValorTotal decimal(7,2) not null,
     QtdTotal int not null,
     NotaFiscal int,
-    IdCli int
+    IdCli int,
+    IdFornecedor int
 );
 
 create table tbNotaFiscal(
@@ -107,6 +108,7 @@ alter table tbClientePJ add foreign key (IdCli) references tbCliente(IdCli);
 
 alter table tbCompra add foreign key (NotaFiscal) references tbNotaFiscal(NotaFiscal);
 alter table tbCompra add foreign key (IdCli) references tbCliente(IdCli);
+alter table tbCompra add foreign key (IdFornecedor) references tbFornecedor(IdFornecedor);
 
 alter table tbItemCompra add foreign key (NotaFiscal) references tbCompra(NotaFiscal);
 alter table tbItemCompra add foreign key (CodigoBarras) references tbProduto(CodigoBarras);
@@ -270,43 +272,6 @@ call spInsertEndereco(12345056, "Rua chocolate", "Aclimação", "Barra Mansa", "
 call spInsertEndereco(12345057, "Rua Pão na Chapa", "Barra Funda", "Ponta Grossa", "RS");
 call spInsertEndereco(12345050, "Rua da Federal", "Lapa", "São Paulo", "SP");
 
--- ========================================================
-
-
-USE dbDistribuidora;
-
-DROP PROCEDURE sp_insertClientPF;
-SELECT * FROM tbCliente;
-SELECT * FROM tbclientepf;
-select * from tbendereco;
-
-TRUNCATE tbcliente;
-TRUNCATE tbclientepf;
-Truncate tbendereco;
-
-call sp_insertClientPF ("Pimpão", 325, Null, 12345051, 12345678911, 12345678, 0, 20001012, "Av Brasil", "Lapa", "Campinas", "SP");
-
-DELIMITER $$
-CREATE PROCEDURE sp_insertClientPF (vnome_cli VARCHAR(200), vnum_end NUMERIC(6), vcomp_end VARCHAR(50), vcep_cli NUMERIC(8),
-									vCPF NUMERIC(14), vRG NUMERIC(9), vRG_Dig char(1), vNasc DATE, vLogradouro varchar(200),
-                                    vBairro varchar(200), vCidade varchar(200), vUF varchar(200))
-BEGIN
-	DECLARE vId_cli INT;
-    
-    call spInsertEndereco(vcep_cli, vLogradouro, vBairro, vCidade, vUF);
-    
-	INSERT INTO tbCliente
-    VALUES(Default, vnome_cli, vnum_end, vcomp_end, vcep_cli);
-    
-    SET vId_cli := (SELECT idcli FROM tbcliente ORDER BY idcli DESC LIMIT 1);
-    
-    INSERT INTO tbclientePF
-    VALUES( vCPF, vRG, vRg_Dig, vNasc, vId_cli);
-END
-$$
-
-
-
 -- ======================================================
 
 use dbdistribuidora;
@@ -407,7 +372,21 @@ begin
     end if;
 
 end
+drop procedure spInsertCompra
+delimiter $$
+create procedure spInsertCompra(vNotaFiscal int, vFornecedor varchar(200), vDataCompra date, vCodigoBarras numeric(14), vValorItem decimal(5,2),
+vQtd int, vQtdTotal int, vValorTotal decimal(7,2))
+begin
+	if not exists (select NotaFiscal from tbNotaFiscal where NotaFiscal = vNotaFiscal) then
+		insert into tbNotaFiscal(NotaFiscal	, TotalNota, DataEmissao) values (vNotaFiscal, vValorTotal, vDataCompra);
+		insert into tbCompra(NotaFiscal, DataCompra, ValorTotal, QtdTotal, idFornecedor) values (vNotaFiscal, vDataCompra, vValorTotal, vQtdTotal,
+        (select idFornecedor from tbFornecedor where Nome = vFornecedor));
+        insert into tbItemCompra(Qtd, ValorItem, NotaFiscal, CodigoBarras) values (vQtd, vValorItem, vNotaFiscal, vCodigoBarras);
+	end if;
+end $$
 
-
-
-
+call spInsertCompra(8459, 'Amoroso e Doce', '2018-05-01', 12345678910111, 22.22, 200, 700, 21944.00);
+call spInsertCompra(2482, 'Revenda Chico Loco', '2020-04-22', 12345678910112, 40.50, 180, 180, 7290.00);
+call spInsertCompra(21563, 'Marcelo Dedal', '2020-07-12', 12345678910113, 3.00, 300, 300, 900.00);
+call spInsertCompra(8459, 'Amoroso e Doce', '2020-12-04', 12345678910114, 35.00, 500, 700, 21944.00);
+call spInsertCompra(156354, 'Revenda Chico Loco', '2021-11-23', 12345687910115, 54.00, 350, 350, 18900.00);
