@@ -1,6 +1,6 @@
- drop database dbDistribuidora;
-create database dbDistribuidora;
-use dbDistribuidora;
+drop database dbdistribuidora;
+create database dbdistribuidora;
+use dbdistribuidora;
 
 CREATE TABLE tbCliente(
 	IdCli INT PRIMARY KEY AUTO_INCREMENT,
@@ -30,23 +30,36 @@ create table tbProduto(
     Valor decimal(5,2) not null,
     Qtd int
 );
+create table tbVenda(
+	CodigoVenda numeric(10) primary key,
+    DataVenda date default(current_timestamp()),
+    ValorTotal decimal(6,2) not null,
+    QtdTotal int not null,
+    IdCli int not null
+);
 
 create table tbCompra(
-	CodigoCompra numeric(10) primary key,
+	CodigoCompra int auto_increment primary key,
     DataCompra date default(current_timestamp()),
     ValorTotal decimal(7,2) not null,
     QtdTotal int not null,
     NotaFiscal int,
     IdCli int,
-    IdFornecedor int
+    IdFornecedor int not null
 );
 
 create table tbNotaFiscal(
 	NotaFiscal int primary key,
-    TotalNota decimal(5,2) not null,
+    TotalNota decimal(7,2) not null,
     DataEmissao date not null
 );
-
+create table tbItemVenda(
+	CodigoVenda numeric(10),
+    CodigoBarras numeric(14),
+    ValorItem decimal(5,2) not null,
+    Qtd int not null,
+    primary key(CodigoVenda,CodigoBarras)
+);
 create table tbItemCompra(
 	NotaFiscal int,
     CodigoBarras numeric(14),
@@ -131,7 +144,6 @@ begin
 end
 $$
 
-describe tbCidade;
 delimiter $$
 create procedure spInsertCidade(vIdCidade int, vCidade varchar(200))
 begin
@@ -139,7 +151,6 @@ begin
 end
 $$
 
-describe tbUF;
 delimiter $$
 create procedure spInsertUF(vIdUf int, vEstado varchar(200))
 begin
@@ -147,7 +158,6 @@ begin
 end
 $$
 
-describe tbBairro;
 delimiter $$
 create procedure spInsertBairro(vIdBairro int, vBairro varchar(200))
 begin
@@ -155,17 +165,12 @@ begin
 end
 $$
 
-describe tbProduto;
 delimiter $$
 create procedure spInsertProduto(vCodigoBarras decimal(14,0), vNome varchar(200), vValor decimal(5,2), vQtd int)
 begin
 	insert into tbProduto(CodigoBarras,NomeProd,Valor,Qtd) values (vCodigoBarras,vNome,vValor,vQtd);
 end
 $$
-
-
-drop procedure spInsertEndereco;
-describe tbEndereco;
 
 delimiter $$
 CREATE PROCEDURE spInsertEndereco(vCep DECIMAL(8,0),vLogradouro VARCHAR(200),vBairro VARCHAR(200), vCidade VARCHAR(200), vEstado VARCHAR(200))
@@ -251,6 +256,7 @@ call spInsertBairro(7, "Consolação");
 
 select * from tbBairro;
 
+
 call spInsertProduto(12345678910111,'Rei de Papel Mache',54.61,120);
 call spInsertProduto(12345678910112,'Bolinha de Sabão',100.45,120);
 call spInsertProduto(12345678910113,'Barro Bate Bate',44.00,120);
@@ -260,7 +266,7 @@ call spInsertProduto(12345678910116,'Boneco do Hitler',124.00,200);
 call spInsertProduto(12345678910117,'Farinha de Surui',50.00,200);
 call spInsertProduto(12345678910118,'Zelador de Cemitério',24.50,100);
 
-select * from tbProduto;
+-- select * from tbProduto;
 
 call spInsertEndereco(12345050, "Rua da Federal", "Lapa", "São Paulo", "SP");
 call spInsertEndereco(12345051, "Av Brasil", "Lapa", "Campinas", "SP");
@@ -272,10 +278,9 @@ call spInsertEndereco(12345056, "Rua chocolate", "Aclimação", "Barra Mansa", "
 call spInsertEndereco(12345057, "Rua Pão na Chapa", "Barra Funda", "Ponta Grossa", "RS");
 call spInsertEndereco(12345050, "Rua da Federal", "Lapa", "São Paulo", "SP");
 
+
 -- ======================================================
 
-use dbdistribuidora;
-drop procedure spInsertCliente;
 delimiter $$
 create procedure spInsertCliente (vNome varchar(50), vNumEnd decimal(6,0), vCompEnd varchar(50), vCEP decimal(8,0), vCPF decimal(11,0), vRG decimal(8,0), vRgDig char(1), vNasc date,
 vLogradouro varchar(200), vBairro varchar(200), vCidade varchar(200), vUF char(2))
@@ -315,7 +320,6 @@ call spInsertCliente('Marciano', 744, null, 12345054, 12345678913, 12345680, 0, 
 call spInsertCliente('Lança Perfume', 128, null, 12345059, 12345678914, 12345681, 'X', '2004-04-05', 'Rua Veia', 'Jardim Santa Isabel', 'Cuiabá', 'MT');
 call spInsertCliente('Remédio Amargo', 2485, null, 12345058, 12345678915, 12345682, 0, '2002-07-15', 'Av. Nova', 'Jardim Santa Isabel', 'Cuiabá', 'MT');
 
-drop procedure spInsertClientePJ;
 delimiter $$
 create procedure spInsertClientePJ (vNome varchar(50), vCNPJ numeric(14), vIE numeric(11), vCEP decimal(8,0), vLogradouro varchar(200),
 				vNumEnd decimal(6,0), vCompEnd varchar(50),
@@ -356,37 +360,103 @@ call spInsertClientePJ('Semgrana', 12345678912347, 98765432100, 12345060, 'Rua d
 call spInsertClientePJ('Cemreais', 12345678912348, 98765432101, 12345060, 'Rua dos Amores', 5024, 'Sala 23', 'Sei Lá', 'Recife', 'PE');
 call spInsertClientePJ('Durango', 12345678912349, 98765432102, 12345060, 'Rua dos Amores', 1254, null, 'Sei Lá', 'Recife', 'PE');
 
-SELECT * FROM tbEndereco;
+/* SELECT * FROM tbEndereco;
 SELECT * FROM tbCidade;
 SELECT * FROM tbUF;
 SELECT * FROM tbBairro;
 SELECT * FROM tbclientepj;
-SELECT * FROM tbcliente;
+SELECT * FROM tbcliente; */
 
-create procedure spInsertCompra (vNotaFiscal INT, vFornecedor varchar(100), vDataCompra Date,
-								 vCodigoBarras numeric(14), vValorItem decimal(5,2),
-								 vQtd int, vQtdTotal int, vValorTotal decimal (6,2))
-begin 
-	if not exists (select NotaFiscal from tbNotaFiscal where NotaFiscal = vNotaFiscal) then
-    insert into tb
-    end if;
-
-end
-drop procedure spInsertCompra
+-- Ex 9
 delimiter $$
-create procedure spInsertCompra(vNotaFiscal int, vFornecedor varchar(200), vDataCompra date, vCodigoBarras numeric(14), vValorItem decimal(5,2),
+create procedure spInsertCompra(vNotaFiscal int, vFornecedor varchar(100), vDataCompra date, vCodigoBarras numeric(14), vValorItem decimal(5,2),
 vQtd int, vQtdTotal int, vValorTotal decimal(7,2))
 begin
 	if not exists (select NotaFiscal from tbNotaFiscal where NotaFiscal = vNotaFiscal) then
 		insert into tbNotaFiscal(NotaFiscal	, TotalNota, DataEmissao) values (vNotaFiscal, vValorTotal, vDataCompra);
 		insert into tbCompra(NotaFiscal, DataCompra, ValorTotal, QtdTotal, idFornecedor) values (vNotaFiscal, vDataCompra, vValorTotal, vQtdTotal,
-        (select idFornecedor from tbFornecedor where Nome = vFornecedor));
+        (select idFornecedor from tbFornecedor where NomeFornecedor = vFornecedor));
         insert into tbItemCompra(Qtd, ValorItem, NotaFiscal, CodigoBarras) values (vQtd, vValorItem, vNotaFiscal, vCodigoBarras);
+        else
+
+		if not exists (select CodigoBarras from tbItemCompra where CodigoBarras = vCodigoBarras) then
+			insert into tbItemCompra(Qtd, ValorItem, NotaFiscal, CodigoBarras) values (vQtd, vValorItem, vNotaFiscal, vCodigoBarras);
+		else
+			select 'Já existe';
+		end if;
 	end if;
 end $$
 
-call spInsertCompra(8459, 'Amoroso e Doce', '2018-05-01', 12345678910111, 22.22, 200, 700, 21944.00);
-call spInsertCompra(2482, 'Revenda Chico Loco', '2020-04-22', 12345678910112, 40.50, 180, 180, 7290.00);
-call spInsertCompra(21563, 'Marcelo Dedal', '2020-07-12', 12345678910113, 3.00, 300, 300, 900.00);
-call spInsertCompra(8459, 'Amoroso e Doce', '2020-12-04', 12345678910114, 35.00, 500, 700, 21944.00);
-call spInsertCompra(156354, 'Revenda Chico Loco', '2021-11-23', 12345687910115, 54.00, 350, 350, 18900.00);
+
+CALL spInsertCompra(8459, 'Amoroso e Doce', '2018-05-01', 12345678910111, 22.22, 200, 700, 21944.00);
+CALL spInsertCompra(2482, 'Revenda Chico Loco', '2020-04-22', 12345678910112, 40.50, 180, 180, 7290.00);
+CALL spInsertCompra(21563, 'Marcelo Dedal', '2020-07-12', 12345678910113, 3.00, 300, 300, 900.00);
+CALL spInsertCompra(8459, 'Amoroso e Doce', '2020-12-04', 12345678910114, 35.00, 500, 700, 21944.00);
+CALL spInsertCompra(156354, 'Revenda Chico Loco', '2021-11-23', 12345678910115, 54.00, 350, 350, 18900.00);
+
+SELECT * FROM tbProduto;
+SELECT * FROM tbNotaFiscal;
+SELECT * FROM tbCompra;
+SELECT * FROM tbItemCompra;
+SELECT * FROM tbFornecedor; 
+
+
+-- Ex 10
+delimiter $$
+create procedure spInsertVenda(vCodigoVenda numeric(10), vCliente varchar(100), vDataVenda char(10), vCodigoBarras decimal(14,0), vValorItem decimal(5,2), vQtd int)
+begin
+	if exists (select * from tbProduto,tbCliente where CodigoBarras = vCodigoBarras and NomeCli = vCliente) then
+		if not exists(select * from tbVenda where CodigoVenda = vCodigoVenda) then
+			set @dataVenda = str_to_date(vDataVenda, '%d-%m-%Y');
+			set @idCliente = (select IdCli from tbCliente where NomeCli = vCliente);
+			insert into tbVenda(CodigoVenda,IdCli,DataVenda,ValorTotal,QtdTotal) values (vCodigoVenda,@idCliente,@dataVenda,(vQtd * vValorItem),vQtd);
+
+		end if;
+        
+        if not exists (select * from tbItemVenda where CodigoBarras = vCodigoBarras) then
+			insert into tbItemVenda(CodigoVenda,CodigoBarras,ValorItem,Qtd) values (vCodigoVenda,vCodigoBarras,vValorItem,vQtd);
+		else
+			select ("Código de barras já existe");
+        end if;
+        
+    end if;
+   
+	if not exists(select * from tbCliente where NomeCli = vCliente) then select("Registro do produto não existe"); end if;
+	if not exists(select * from tbProduto where CodigoBarras = vCodigoBarras) then select("Registro do cliente não existe"); end if;
+end
+$$
+describe tbVenda;
+call spInsertVenda(1, "Pimpão","22-08-2022",12345678910111,54.61,1);
+call spInsertVenda(2, "Lança Perfume","22-08-2022",12345678910112,100.45,2);
+call spInsertVenda(3, "Pimpão","22-08-2022",12345678910113,44,1);
+select * from tbVenda;
+select * from tbItemVenda;
+
+-- Ex 11
+delimiter $$
+create procedure spInsertNotaFiscal(vNotaFiscal int, vCliente varchar(100), vDataEmissao char(10))
+begin
+	set @dataEmissao = str_to_date(vDataEmissao, "%d-%m-%Y");
+    set @idCliente = (select idCli from tbCliente where NomeCli = vCliente);
+	set @totalVenda = (select sum(ValorTotal) from tbVenda where idCli = @idCliente);
+    
+    if not exists (select * from tbNotafiscal where NotaFiscal = vNotaFiscal) then
+    insert into tbNotaFiscal(NotaFiscal,TotalNota,DataEmissao) values (vNotaFiscal,@totalVenda,@dataEmissao);
+    else
+		select("Nota fiscal já existe");
+end if;
+end
+$$
+
+DESCRIBE tbVenda;
+
+CALL spInsertNotaFiscal(359,"Pimpão","29-08-2022");
+cALL spInsertNotaFiscal(360,"Lança Perfume","29-08-2022");
+
+SELECT * FROM tbNotaFiscal;
+
+/*
+update tbNotaFiscal
+set DataEmissao = str_to_date("29-08-2022", "%d-%m-%Y")
+where NotaFiscal = 359;
+*/
