@@ -1,4 +1,4 @@
-drop database db_b2;
+-- drop database db_b2;
 create database db_b2;
 use db_b2;
 
@@ -8,7 +8,7 @@ create table tbl_funcionario(
     FuncEmail varchar(200) not null 
 );
 
-drop procedure spInsertFuncionario
+-- drop procedure spInsertFuncionario
 DELIMITER $$
 create procedure spInsertFuncionario(vFuncNome char(100), vFuncEmail varchar(200))
 begin
@@ -20,8 +20,6 @@ CALL spInsertFuncionario("José Mario", "jose@escola.com");
 CALL spInsertFuncionario("Antonio Pedro", "ant@escola.com");
 CALL spInsertFuncionario("Monica Cascão", "moc@escola.com");
 
-
-select * from tbl_funcionario;
 
 create table tb_FuncionarioHistorico LIKE tbl_funcionario;
 
@@ -42,16 +40,16 @@ Create trigger TRG_FuncHistoricoInsert after insert on tbl_funcionario
 for each row
 begin
 	Insert into tb_FuncionarioHistorico
-    set 		FuncId	= 	New.FuncId,
-			  FuncNome	= 	New.FuncNome,
-             FuncEmail 	= 	New.FuncEmail,
-		 Atualizacao	= 	current_timestamp(),
-	  Situacao 	= 	"Novo";
+    set FuncId = New.FuncId,
+	FuncNome = New.FuncNome,
+        FuncEmail = New.FuncEmail,
+	Atualizacao = current_timestamp(),
+	Situacao = "Novo";
 end;
 //
 CALL spInsertFuncionario("Will Jr", "willj@escola.com");
 -- truncate tbl_funcionario;
-select * from tb_FuncionarioHistorico;
+-- select * from tb_FuncionarioHistorico;
 -- truncate tb_FuncionarioHistorico;
 
 Delimiter //
@@ -68,4 +66,4 @@ end;
 //
 
 delete from tbl_funcionario where FuncId = 3;
-select * from tbl_funcionario;
+-- select * from tbl_funcionario;
