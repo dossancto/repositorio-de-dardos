@@ -31,7 +31,7 @@ call spInsertBairro(7, "Consolação");
 
 call spInsertProduto(12345678910111,'Rei de Papel Mache',54.61,120);
 call spInsertProduto(12345678910112,'Bolinha de Sabão',100.45,120);
-call spInsertProduto(12345678910113,'Barro Bate Bate',44.00,120);
+call spInsertProduto(12345678910113,'Carro Bate Bate',44.00,120);
 call spInsertProduto(12345678910114,'Bola Furada',10.00,120);
 call spInsertProduto(12345678910115,'Maçã Laranja',99.44,120);
 call spInsertProduto(12345678910116,'Boneco do Hitler',124.00,200);
@@ -72,3 +72,16 @@ call spInsertVenda(3,"Pimpão","22-08-2022",12345678910113,100.45,2,200.90,null)
 
 call spInsertNotaFiscal(359,"Pimpão","22-08-2022");
 call spInsertNotaFiscal(360,"Lança Perfume","22-08-2022");
+
+CALL spInsertProduto(12345678910130, "Camiseta de Poliéster", 35.61, 100);
+CALL spInsertProduto(12345678910131, "Blusa Frio Moletom", 200.00, 100);
+CALL spInsertProduto(12345678910132, "Vestido Decote Redondo", 144.00, 50);
+
+CALL spDeleteProduto(12345678910116, "Boneco do Hitler", 124.00, 200);
+CALL spDeleteProduto(12345678910117, "Farinha de Suruí", 50.00, 200);
+
+CALL spUpdateProduto(12345678910111, "Rei de Papel Mache", 64.50);
+CALL spUpdateProduto(12345678910112, "Bolinha de Sabão", 120.00);
+CALL spUpdateProduto(12345678910113, "Carro Bate Bate", 64.00);
+
+CALL spSelectProduto;
