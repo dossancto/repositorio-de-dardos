@@ -171,6 +171,18 @@ begin
 	insert into tbProduto(CodigoBarras,NomeProd,Valor,Qtd) values (vCodigoBarras,vNome,vValor,vQtd);
 end
 $$
+-- InsertProduto melhor
+/* delimiter $$
+create procedure spInsertProduto(vCodigoBarras numeric(14), vNomeProd varchar(200), vValor decimal(5,2), vQtd int)
+begin
+if not exists (select * from tbProduto where CodigoBarras = vCodigoBarras) then
+    insert into tbProduto(CodigoBarras,NomeProd,Valor,Qtd) values (vCodigoBarras,vNomeProd,vValor,vQtd);
+    else
+		select("Produto já cadastrado");
+end if;
+end
+$$
+*/
 
 delimiter $$
 CREATE PROCEDURE spInsertEndereco(vCep DECIMAL(8,0),vLogradouro VARCHAR(200),vBairro VARCHAR(200), vCidade VARCHAR(200), vEstado VARCHAR(200))
@@ -224,7 +236,7 @@ call spInsertFornecedor(1745678937123, "Marcelo Dedal", 11934567802);
 call spInsertFornecedor(1845678937123, "Franciscano Cachaça", 11934567803);
 call spInsertFornecedor(1945678937123, "Joãozinho Chupeta", 11934567804);
 
-select * from tbFornecedor;
+-- select * from tbFornecedor;
 
 call spInsertCidade(1, "Rio de Janeiro");
 call spInsertCidade(2, "São Carlos");
@@ -239,13 +251,13 @@ call spInsertCidade(10, "Barra Mansa");
 
 
 
-select * from tbCidade;
+-- select * from tbCidade;
 
 call spInsertUF(1, "SP");
 call spInsertUF(2, "RJ");
 call spInsertUF(3, "RS");
 
-SELECT * FROM tbUF;
+-- SELECT * FROM tbUF;
 
 call spInsertBairro(1, "Aclimação");
 call spInsertBairro(2, "Capão Redondo");
@@ -259,7 +271,7 @@ select * from tbBairro;
 
 call spInsertProduto(12345678910111,'Rei de Papel Mache',54.61,120);
 call spInsertProduto(12345678910112,'Bolinha de Sabão',100.45,120);
-call spInsertProduto(12345678910113,'Barro Bate Bate',44.00,120);
+call spInsertProduto(12345678910113,'Carro Bate Bate',44.00,120);
 call spInsertProduto(12345678910114,'Bola Furada',10.00,120);
 call spInsertProduto(12345678910115,'Maçã Laranja',99.44,120);
 call spInsertProduto(12345678910116,'Boneco do Hitler',124.00,200);
@@ -454,6 +466,59 @@ CALL spInsertNotaFiscal(359,"Pimpão","29-08-2022");
 cALL spInsertNotaFiscal(360,"Lança Perfume","29-08-2022");
 
 SELECT * FROM tbNotaFiscal;
+
+-- Exercício 12
+CALL spInsertProduto(12345678910130, "Camiseta de Poliéster", 35.61, 100);
+CALL spInsertProduto(12345678910131, "Blusa Frio Moletom", 200.00, 100);
+CALL spInsertProduto(12345678910132, "Vestido Decote Redondo", 144.00, 50);
+
+-- select * from tbProduto;
+
+-- Exercicio 13
+delimiter $$
+create procedure spDeleteProduto(vCodigoBarras numeric(14), vNomeProd varchar(200), vValor decimal(5,2), vQtd int)
+begin
+if exists (select * from tbProduto where CodigoBarras = vCodigoBarras) then
+    delete from tbProduto where CodigoBarras = vCodigoBarras and NomeProd = vNomeProd;
+    else
+		select("Produto não existe para ser deletado");
+end if;
+end
+$$
+
+CALL spDeleteProduto(12345678910116, "Boneco do Hitler", 124.00, 200);
+CALL spDeleteProduto(12345678910117, "Farinha de Suruí", 50.00, 200);
+
+-- Exercicio 14
+
+delimiter $$
+create procedure spUpdateProduto(vCodigoBarras numeric(14), vNomeProd varchar(200), vValor decimal(5,2))
+begin
+if exists (select * from tbProduto where CodigoBarras = vCodigoBarras) then
+    update tbProduto set CodigoBarras = vCodigoBarras, NomeProd = vNomeProd, Valor = vValor where CodigoBarras = vCodigoBarras and NomeProd = vNomeProd;
+    else
+		select("Produto não existe para ser modificado");
+end if;
+end
+$$
+
+CALL spUpdateProduto(12345678910111, "Rei de Papel Mache", 64.50);
+CALL spUpdateProduto(12345678910112, "Bolinha de Sabão", 120.00);
+CALL spUpdateProduto(12345678910113, "Carro Bate Bate", 64.00);
+
+-- Exercício 15
+
+delimiter $$
+create procedure spSelectProduto()
+begin
+	select * from tbProduto;
+end
+$$
+
+CALL spSelectProduto;
+
+-- Exercício 16
+
 
 /*
 update tbNotaFiscal
