@@ -425,7 +425,7 @@ begin
 
 		end if;
         
-        if not exists (select * from tbItemVenda where CodigoBarras = vCodigoBarras) then
+        if not exists (select * from tbItemVenda where CodigoVenda = vCodigoVenda) then
 			insert into tbItemVenda(CodigoVenda,CodigoBarras,ValorItem,Qtd) values (vCodigoVenda,vCodigoBarras,vValorItem,vQtd);
 		else
 			select ("Código de barras já existe");
@@ -517,11 +517,151 @@ $$
 
 CALL spSelectProduto;
 
--- Exercício 16
+# 16, 17 e 18
+create table tbProdutoHistorico like tbProduto;
+
+alter table tbProdutoHistorico add Ocorrencia varchar(20);
+alter table tbProdutoHistorico add Atualizacao datetime;
+
+ALTER TABLE tbProdutoHistorico DROP PRIMARY KEY, ADD PRIMARY KEY(CodigoBarras, Ocorrencia, Atualizacao);
+
+# 19
+delimiter //
+create trigger trgProdHistorico after insert on tbProduto
+	for each row
+  begin
+  insert into tbProdutoHistorico
+		set CodigoBarras = new.CodigoBarras,
+			NomeProd = new.NomeProd,
+            Valor = new.Valor,
+            Qtd = new.Qtd,
+            Ocorrencia = 'Novo',
+            Atualizacao = current_timestamp();
+  end;
+//
+call spInsertProduto(12345678910119, 'Água mineral', 1.99, 500);
+select * from tbProdutoHistorico;
+select * from tbProduto;
 
 
-/*
-update tbNotaFiscal
-set DataEmissao = str_to_date("29-08-2022", "%d-%m-%Y")
-where NotaFiscal = 359;
-*/
+# 20 
+delimiter //
+create trigger trgProdHistoricoUpdate before update on tbProduto
+	for each row
+  begin
+  insert into tbProdutoHistorico
+		set CodigoBarras = new.CodigoBarras,
+			NomeProd = new.NomeProd,
+            Valor = new.Valor,
+            Qtd = new.Qtd,
+            Ocorrencia = 'Atualizacao',
+            Atualizacao = current_timestamp();
+  end;
+//
+select * from tbProduto;
+describe tbProduto;
+call spUpdateProduto(12345678910119, 'Água mineral', 2.99);
+select * from tbProdutoHistorico;
+
+-- Exercício 21
+
+CALL spSelectProduto;
+
+
+
+-- Exercicio Easter Egg
+call spInsertProduto(1234567899, "Boneca", 21, 200);
+select * from tbProduto;
+select * from tbProdutoHistorico;
+-- -----------------------
+
+-- Exercicio 22 
+select * from tbCliente;
+select * from tbVenda;
+
+drop procedure spInsertVenda2;
+delimiter $$
+create procedure spInsertVenda2(vCodigoVenda numeric(10), vCliente varchar(100), vDataVenda char(10), vCodigoBarras decimal(14,0), vQtd int)
+begin
+	if exists (select * from tbProduto,tbCliente where CodigoBarras = vCodigoBarras and NomeCli = vCliente) then
+		if not exists(select * from tbVenda where CodigoVenda = vCodigoVenda) then
+			set @dataVenda = str_to_date(vDataVenda, '%d-%m-%Y');
+            set @valorItem = (select valor from tbProduto where CodigoBarras = vCodigoBarras);
+			set @idCliente = (select IdCli from tbCliente where NomeCli = vCliente);
+			insert into tbVenda(CodigoVenda,IdCli,DataVenda,ValorTotal,QtdTotal) values (vCodigoVenda,@idCliente,@dataVenda,(vQtd * @valorItem),vQtd);
+
+		end if;
+      if not exists (select * from tbItemVenda where CodigoVenda = vCodigoVenda) then
+			insert into tbItemVenda(CodigoVenda,CodigoBarras,ValorItem,Qtd) values (vCodigoVenda,vCodigoBarras,@valorItem,vQtd);
+        end if;
+    end if;
+   
+	if not exists(select * from tbCliente where NomeCli = vCliente) then select("Registro do produto não existe"); end if;
+	if not exists(select * from tbProduto where CodigoBarras = vCodigoBarras) then select("Registro do cliente não existe"); end if;
+end
+$$
+
+call spInsertVenda2(4, "Disney Chaplin","26-09-2022",12345678910111,1);
+
+
+-- Exercicio 23
+
+select * from tbVenda order by DataVenda desc limit 1;
+
+-- Exercicio 24
+select * from tbItemVenda order by CodigoVenda desc limit 1;
+
+-- Exercicio 25
+delimiter $$
+create procedure spSelectCliente(vNomeCli varchar(200))
+begin
+	if exists(select NomeCli from tbCliente where NomeCli = vNomeCli) then
+	select * from tbCliente where NomeCli = vNomeCli;
+	else
+    select('Cliente não existe');
+    end if;
+end
+$$
+call spSelectCliente("Disney Chaplin");
+describe tbItemVenda;
+
+
+-- Exercicio 26
+
+delimiter //
+create trigger trgUpdateQtdVenda after insert on tbItemVenda
+	for each row
+  begin
+	update tbProduto
+    set Qtd = Qtd - new.Qtd where codigoBarras = new.Codigobarras;
+  end;
+//
+
+-- Exercicio 27
+
+call spInsertVenda2(6, "Paganada","26-09-2022",12345678910114,15);
+
+-- Exercicio 28 
+
+CALL spSelectProduto;
+
+-- Exercicio 29
+describe tbItemCompra;
+delimiter //
+create trigger trgUpdateQtdCompra after insert on tbItemCompra
+	for each row
+  begin
+	update tbProduto
+    set Qtd = Qtd + new.Qtd where codigoBarras = new.Codigobarras;
+  end;
+//
+
+-- Exercicio 30 
+
+CALL spInsertCompra(10548, 'Amoroso e Doce', '2022-09-10', 12345678910111, 40.00, 100, 100, 4000.00);
+
+-- Exercicio 31
+
+CALL spSelectProduto;
+
+
