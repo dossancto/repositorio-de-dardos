@@ -1,6 +1,6 @@
-drop database dbdistribuidora;
-create database dbdistribuidora;
-use dbdistribuidora;
+drop database dbteste;
+create database dbteste;
+use dbteste;
 
 CREATE TABLE tbCliente(
 	IdCli INT PRIMARY KEY AUTO_INCREMENT,
@@ -31,7 +31,7 @@ create table tbProduto(
     Qtd int
 );
 create table tbVenda(
-	CodigoVenda numeric(10) primary key,
+	CodigoVenda int auto_increment primary key,
     DataVenda date default(current_timestamp()),
     ValorTotal decimal(6,2) not null,
     QtdTotal int not null,
@@ -54,7 +54,7 @@ create table tbNotaFiscal(
     DataEmissao date not null
 );
 create table tbItemVenda(
-	CodigoVenda numeric(10),
+	CodigoVenda int,
     CodigoBarras numeric(14),
     ValorItem decimal(5,2) not null,
     Qtd int not null,
@@ -144,12 +144,16 @@ begin
 end
 $$
 
+delimiter ;
+
 delimiter $$
 create procedure spInsertCidade(vIdCidade int, vCidade varchar(200))
 begin
 	insert into tbCidade(idCidade, Cidade) values (vIdCidade, vCidade);
 end
 $$
+
+delimiter ;
 
 delimiter $$
 create procedure spInsertUF(vIdUf int, vEstado varchar(200))
@@ -158,6 +162,8 @@ begin
 end
 $$
 
+delimiter ;
+
 delimiter $$
 create procedure spInsertBairro(vIdBairro int, vBairro varchar(200))
 begin
@@ -165,12 +171,17 @@ begin
 end
 $$
 
+delimiter ;
+
 delimiter $$
 create procedure spInsertProduto(vCodigoBarras decimal(14,0), vNome varchar(200), vValor decimal(5,2), vQtd int)
 begin
 	insert into tbProduto(CodigoBarras,NomeProd,Valor,Qtd) values (vCodigoBarras,vNome,vValor,vQtd);
 end
 $$
+
+delimiter ;
+
 -- InsertProduto melhor
 /* delimiter $$
 create procedure spInsertProduto(vCodigoBarras numeric(14), vNomeProd varchar(200), vValor decimal(5,2), vQtd int)
@@ -227,6 +238,8 @@ BEGIN
 END
 $$
 
+delimiter ;
+
 call spInsertFornecedor(1245678937123, "Revenda Chico Loco", 11934567897);
 call spInsertFornecedor(1345678937123, "José Faz Tudo S/A", 11934567898);
 call spInsertFornecedor(1445678937123, "Vadalto Entregas", 11934567899);
@@ -266,7 +279,7 @@ call spInsertBairro(5, "Lapa");
 call spInsertBairro(6, "Penha");
 call spInsertBairro(7, "Consolação");
 
-select * from tbBairro;
+-- select * from tbBairro;
 
 
 call spInsertProduto(12345678910111,'Rei de Papel Mache',54.61,120);
@@ -326,6 +339,8 @@ begin
 	end if;
 end $$
 
+delimiter ;
+
 call spInsertCliente('Pimpão', 325, null, 12345051, 12345678911, 12345678, 0, '2000-12-10', 'Av. Brasil', 'Lapa', 'Campinas', 'SP');
 call spInsertCliente('Disney Chaplin', 89, 'Ap. 12', 12345053, 12345678912, 12345679, 0, '2001-11-21', 'Av. Paulista', 'Penha', 'Rio de Janeiro', 'RJ');
 call spInsertCliente('Marciano', 744, null, 12345054, 12345678913, 12345680, 0, '2001-06-01', 'Rua Ximbú', 'Penha', 'Rio de Janeiro', 'RJ');
@@ -366,6 +381,8 @@ begin
 	end if;
 end $$
 
+delimiter ;
+
 call spInsertClientePJ('Paganada', 12345678912345, 98765432198, 12345051, 'Av. Brasil', 159, null, 'Lapa', 'Campinas', 'SP');
 call spInsertClientePJ('Caloteando', 12345678912346, 98765432199, 12345053, 'Av. Paulista', 69, null, 'Penha', 'Rio de Janeiro', 'RJ');
 call spInsertClientePJ('Semgrana', 12345678912347, 98765432100, 12345060, 'Rua dos Amores', 189, null, 'Sei Lá', 'Recife', 'PE');
@@ -399,6 +416,7 @@ begin
 	end if;
 end $$
 
+delimiter ;
 
 CALL spInsertCompra(8459, 'Amoroso e Doce', '2018-05-01', 12345678910111, 22.22, 200, 700, 21944.00);
 CALL spInsertCompra(2482, 'Revenda Chico Loco', '2020-04-22', 12345678910112, 40.50, 180, 180, 7290.00);
@@ -406,43 +424,42 @@ CALL spInsertCompra(21563, 'Marcelo Dedal', '2020-07-12', 12345678910113, 3.00, 
 CALL spInsertCompra(8459, 'Amoroso e Doce', '2020-12-04', 12345678910114, 35.00, 500, 700, 21944.00);
 CALL spInsertCompra(156354, 'Revenda Chico Loco', '2021-11-23', 12345678910115, 54.00, 350, 350, 18900.00);
 
-SELECT * FROM tbProduto;
+/* SELECT * FROM tbProduto;
 SELECT * FROM tbNotaFiscal;
 SELECT * FROM tbCompra;
 SELECT * FROM tbItemCompra;
 SELECT * FROM tbFornecedor; 
-
+*/
 
 -- Ex 10
+
 delimiter $$
-create procedure spInsertVenda(vCodigoVenda numeric(10), vCliente varchar(100), vDataVenda char(10), vCodigoBarras decimal(14,0), vValorItem decimal(5,2), vQtd int)
+create procedure spInsertVenda(vCliente varchar(100), vCodigoBarras decimal(14,0), vQtd int)
 begin
 	if exists (select * from tbProduto,tbCliente where CodigoBarras = vCodigoBarras and NomeCli = vCliente) then
-		if not exists(select * from tbVenda where CodigoVenda = vCodigoVenda) then
-			set @dataVenda = str_to_date(vDataVenda, '%d-%m-%Y');
+			set @dataVenda = current_date();
+            set @valorItem = (select valor from tbProduto where CodigoBarras = vCodigoBarras);
 			set @idCliente = (select IdCli from tbCliente where NomeCli = vCliente);
-			insert into tbVenda(CodigoVenda,IdCli,DataVenda,ValorTotal,QtdTotal) values (vCodigoVenda,@idCliente,@dataVenda,(vQtd * vValorItem),vQtd);
+			insert into tbVenda(IdCli,DataVenda,ValorTotal,QtdTotal) values (@idCliente,@dataVenda,(vQtd * @valorItem),vQtd);
+            set @codigoVenda = (select codigoVenda from tbvenda order by codigoVenda desc limit 1 );
 
-		end if;
-        
-        if not exists (select * from tbItemVenda where CodigoVenda = vCodigoVenda) then
-			insert into tbItemVenda(CodigoVenda,CodigoBarras,ValorItem,Qtd) values (vCodigoVenda,vCodigoBarras,vValorItem,vQtd);
-		else
-			select ("Código de barras já existe");
+      if not exists (select * from tbItemVenda where CodigoVenda = @codigoVenda) then
+			insert into tbItemVenda(CodigoVenda,CodigoBarras,ValorItem,Qtd) values (@codigoVenda,vCodigoBarras,@valorItem,vQtd);
         end if;
-        
     end if;
    
 	if not exists(select * from tbCliente where NomeCli = vCliente) then select("Registro do produto não existe"); end if;
 	if not exists(select * from tbProduto where CodigoBarras = vCodigoBarras) then select("Registro do cliente não existe"); end if;
 end
 $$
-describe tbVenda;
-call spInsertVenda(1, "Pimpão","22-08-2022",12345678910111,54.61,1);
-call spInsertVenda(2, "Lança Perfume","22-08-2022",12345678910112,100.45,2);
-call spInsertVenda(3, "Pimpão","22-08-2022",12345678910113,44,1);
-select * from tbVenda;
-select * from tbItemVenda;
+delimiter ;
+
+-- describe tbVenda
+call spInsertVenda("Pimpão",12345678910111,1);
+call spInsertVenda("Lança Perfume",12345678910112,2);
+call spInsertVenda("Pimpão",12345678910113, 1);
+-- select * from tbVenda;
+-- select * from tbItemVenda;
 
 -- Ex 11
 delimiter $$
@@ -459,13 +476,14 @@ begin
 end if;
 end
 $$
+delimiter ;
 
-DESCRIBE tbVenda;
+-- DESCRIBE tbVenda;
 
 CALL spInsertNotaFiscal(359,"Pimpão","29-08-2022");
 cALL spInsertNotaFiscal(360,"Lança Perfume","29-08-2022");
 
-SELECT * FROM tbNotaFiscal;
+-- SELECT * FROM tbNotaFiscal;
 
 -- Exercício 12
 CALL spInsertProduto(12345678910130, "Camiseta de Poliéster", 35.61, 100);
@@ -485,6 +503,7 @@ if exists (select * from tbProduto where CodigoBarras = vCodigoBarras) then
 end if;
 end
 $$
+delimiter ; 
 
 CALL spDeleteProduto(12345678910116, "Boneco do Hitler", 124.00, 200);
 CALL spDeleteProduto(12345678910117, "Farinha de Suruí", 50.00, 200);
@@ -501,6 +520,7 @@ if exists (select * from tbProduto where CodigoBarras = vCodigoBarras) then
 end if;
 end
 $$
+delimiter ;
 
 CALL spUpdateProduto(12345678910111, "Rei de Papel Mache", 64.50);
 CALL spUpdateProduto(12345678910112, "Bolinha de Sabão", 120.00);
@@ -514,52 +534,63 @@ begin
 	select * from tbProduto;
 end
 $$
-
+delimiter ;
 CALL spSelectProduto;
 
 # 16, 17 e 18
-create table tbProdutoHistorico like tbProduto;
+CREATE TABLE tbProdutoHistorico LIKE tbProduto;
 
-alter table tbProdutoHistorico add Ocorrencia varchar(20);
-alter table tbProdutoHistorico add Atualizacao datetime;
+ALTER TABLE tbProdutoHistorico ADD Ocorrencia VARCHAR(20);
+ALTER TABLE tbProdutoHistorico ADD Atualizacao DATETIME;
 
 ALTER TABLE tbProdutoHistorico DROP PRIMARY KEY, ADD PRIMARY KEY(CodigoBarras, Ocorrencia, Atualizacao);
 
+describe tbProdutoHistorico;
+
 # 19
 delimiter //
-create trigger trgProdHistorico after insert on tbProduto
-	for each row
-  begin
-  insert into tbProdutoHistorico
-		set CodigoBarras = new.CodigoBarras,
+CREATE TRIGGER trgProdHistorico AFTER INSERT ON tbProduto
+	FOR EACH ROW
+  BEGIN
+  INSERT INTO tbProdutoHistorico
+		SET CodigoBarras = new.CodigoBarras,
 			NomeProd = new.NomeProd,
             Valor = new.Valor,
             Qtd = new.Qtd,
             Ocorrencia = 'Novo',
-            Atualizacao = current_timestamp();
-  end;
+            Atualizacao = CURRENT_TIMESTAMP();
+  END;
 //
+delimiter ;
 call spInsertProduto(12345678910119, 'Água mineral', 1.99, 500);
-select * from tbProdutoHistorico;
-select * from tbProduto;
+-- select * from tbProdutoHistorico;
+-- select * from tbProduto;
 
 
 # 20 
 delimiter //
-create trigger trgProdHistoricoUpdate before update on tbProduto
-	for each row
-  begin
-  insert into tbProdutoHistorico
-		set CodigoBarras = new.CodigoBarras,
+CREATE TRIGGER trgProdHistoricoUpdate BEFORE UPDATE ON tbProduto
+	FOR EACH ROW
+  BEGIN
+  INSERT INTO tbProdutoHistorico
+		SET CodigoBarras = new.CodigoBarras,
 			NomeProd = new.NomeProd,
             Valor = new.Valor,
             Qtd = new.Qtd,
-            Ocorrencia = 'Atualizacao',
-            Atualizacao = current_timestamp();
-  end;
+            Ocorrencia = 'Atualizado',
+            Atualizacao = CURRENT_TIMESTAMP();
+   INSERT INTO tbProdutoHistorico         
+            SET CodigoBarras = old.CodigoBarras,
+			NomeProd = old.NomeProd,
+            Valor = old.Valor,
+            Qtd = old.Qtd,
+            Ocorrencia = 'Antigo',
+            Atualizacao = CURRENT_TIMESTAMP();
+  END;
 //
-select * from tbProduto;
-describe tbProduto;
+delimiter ;
+-- select * from tbProduto;
+-- describe tbProduto;
 call spUpdateProduto(12345678910119, 'Água mineral', 2.99);
 select * from tbProdutoHistorico;
 
@@ -571,42 +602,25 @@ CALL spSelectProduto;
 
 -- Exercicio Easter Egg
 call spInsertProduto(1234567899, "Boneca", 21, 200);
-select * from tbProduto;
-select * from tbProdutoHistorico;
+call spUpdateProduto(1234567899, "Boneca de Plástico", 101);
+-- select * from tbProduto;
+-- select * from tbProdutoHistorico;
 -- -----------------------
 
 -- Exercicio 22 
-select * from tbCliente;
+
+call spInsertVenda("Disney Chaplin",12345678910111,1);
+call spInsertVenda("Lança Perfume",12345678910114,10);
 select * from tbVenda;
-
-drop procedure spInsertVenda2;
-delimiter $$
-create procedure spInsertVenda2(vCodigoVenda numeric(10), vCliente varchar(100), vDataVenda char(10), vCodigoBarras decimal(14,0), vQtd int)
-begin
-	if exists (select * from tbProduto,tbCliente where CodigoBarras = vCodigoBarras and NomeCli = vCliente) then
-		if not exists(select * from tbVenda where CodigoVenda = vCodigoVenda) then
-			set @dataVenda = str_to_date(vDataVenda, '%d-%m-%Y');
-            set @valorItem = (select valor from tbProduto where CodigoBarras = vCodigoBarras);
-			set @idCliente = (select IdCli from tbCliente where NomeCli = vCliente);
-			insert into tbVenda(CodigoVenda,IdCli,DataVenda,ValorTotal,QtdTotal) values (vCodigoVenda,@idCliente,@dataVenda,(vQtd * @valorItem),vQtd);
-
-		end if;
-      if not exists (select * from tbItemVenda where CodigoVenda = vCodigoVenda) then
-			insert into tbItemVenda(CodigoVenda,CodigoBarras,ValorItem,Qtd) values (vCodigoVenda,vCodigoBarras,@valorItem,vQtd);
-        end if;
-    end if;
-   
-	if not exists(select * from tbCliente where NomeCli = vCliente) then select("Registro do produto não existe"); end if;
-	if not exists(select * from tbProduto where CodigoBarras = vCodigoBarras) then select("Registro do cliente não existe"); end if;
-end
-$$
-
-call spInsertVenda2(4, "Disney Chaplin","26-09-2022",12345678910111,1);
-
+select * from tbItemVenda;
+select * from tbProduto;
+select * from tbCliente;
 
 -- Exercicio 23
 
-select * from tbVenda order by DataVenda desc limit 1;
+select * from tbVenda order by CodigoVenda desc limit 1;
+
+select * from tbCliente;
 
 -- Exercicio 24
 select * from tbItemVenda order by CodigoVenda desc limit 1;
@@ -622,6 +636,7 @@ begin
     end if;
 end
 $$
+delimiter ;
 call spSelectCliente("Disney Chaplin");
 describe tbItemVenda;
 
@@ -636,14 +651,19 @@ create trigger trgUpdateQtdVenda after insert on tbItemVenda
     set Qtd = Qtd - new.Qtd where codigoBarras = new.Codigobarras;
   end;
 //
+delimiter ;
+select * from tbVenda;
+select * from tbItemVenda;
+select * from tbProduto;
 
 -- Exercicio 27
 
-call spInsertVenda2(6, "Paganada","26-09-2022",12345678910114,15);
+call spInsertVenda("Paganada",12345678910114,15);
 
 -- Exercicio 28 
 
 CALL spSelectProduto;
+
 
 -- Exercicio 29
 describe tbItemCompra;
@@ -655,7 +675,7 @@ create trigger trgUpdateQtdCompra after insert on tbItemCompra
     set Qtd = Qtd + new.Qtd where codigoBarras = new.Codigobarras;
   end;
 //
-
+delimiter ;
 -- Exercicio 30 
 
 CALL spInsertCompra(10548, 'Amoroso e Doce', '2022-09-10', 12345678910111, 40.00, 100, 100, 4000.00);
@@ -664,4 +684,6 @@ CALL spInsertCompra(10548, 'Amoroso e Doce', '2022-09-10', 12345678910111, 40.00
 
 CALL spSelectProduto;
 
+
+describe tbprodutohistorico;
 
